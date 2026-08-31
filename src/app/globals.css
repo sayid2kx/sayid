@@ -239,6 +239,57 @@
   --chart-5: #f5f5f7;
 }
 
+/* ── Flux — Concourse Interactive (light, violet/iris, aurora + grid) ── */
+[data-theme="flux"] {
+  --footer-bg: #0f0a1e;
+  --background: #fcfcff;
+  --foreground: #1a1625;
+  --card: #ffffff;
+  --card-foreground: #1a1625;
+  --popover: #ffffff;
+  --popover-foreground: #1a1625;
+  --primary: #5b21b6;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f3ff;
+  --secondary-foreground: #1a1625;
+  --muted: #f5f3ff;
+  --muted-foreground: #6b6b7a;
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: rgba(124, 58, 237, 0.10);
+  --input: rgba(124, 58, 237, 0.10);
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-2: #4f46e5;
+  --chart-3: #a78bfa;
+  --chart-4: #c4b5fd;
+  --chart-5: #ede9fe;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1625;
+  --sidebar-primary: #5b21b6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f3ff;
+  --sidebar-accent-foreground: #1a1625;
+  --sidebar-border: rgba(124, 58, 237, 0.10);
+  --sidebar-ring: #7c3aed;
+  --font-heading: var(--font-inter);
+  --text-strong: #1a1625;
+  --text-muted: #3a3450;
+  --accent-soft: rgba(124, 58, 237, 0.08);
+  --blob-opacity: 0; /* flux uses aurora instead */
+  --grain-opacity: 0.014;
+  --main-gradient: conic-gradient(from 180deg at 50% 50%, #ede9fe, #ddd6fe, #c4b5fd, #a78bfa, #8b5cf6, #ede9fe);
+  --hairline: 1px solid rgba(124, 58, 237, 0.10);
+  --shadow-soft: 0 8px 24px rgba(91, 33, 182, 0.07), 0 2px 8px rgba(91, 33, 182, 0.05);
+  --shadow-card: 0 16px 36px rgba(91, 33, 182, 0.09), 0 4px 14px rgba(91, 33, 182, 0.06);
+  --nav-blur: blur(20px) saturate(170%);
+  --gallery-caption-bg: #1a1625;
+  --gallery-caption-fg: #ffffff;
+  --gallery-caption-border: rgba(255,255,255,0.12);
+  --radius: 1.125rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -328,3 +379,133 @@ body::before {
 
 /* Garden: keep serif italic hero */
 [data-theme="garden"] h1 .italic { font-family: var(--font-instrument), Georgia, serif; font-style: italic; }
+
+/* ── Flux — concourse premium overrides ── */
+[data-theme="flux"] h1,
+[data-theme="flux"] h2,
+[data-theme="flux"] h3 {
+  font-family: var(--font-inter), sans-serif;
+  letter-spacing: -0.035em;
+  font-weight: 650;
+}
+[data-theme="flux"] h1 .italic { font-style: normal !important; font-weight: 650; color: #5b21b6; }
+[data-theme="flux"] .group\/card { box-shadow: var(--shadow-soft); border-color: rgba(124,58,237,0.08); }
+[data-theme="flux"] [data-slot="badge"][data-variant="secondary"] { background: #f5f3ff; border-color: rgba(124,58,237,0.08); }
+[data-theme="flux"] ::selection { background: rgba(124,58,237,0.14); }
+
+/* Flux aurora — light mesh with drift */
+.flux-aurora {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+.flux-aurora__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  will-change: transform;
+  opacity: 0.62;
+  animation: flux-drift 18s ease-in-out infinite alternate;
+}
+.flux-aurora__orb:nth-child(2) { animation-duration: 24s; animation-delay: -4s; opacity: 0.48; }
+.flux-aurora__orb:nth-child(3) { animation-duration: 28s; animation-delay: -9s; opacity: 0.38; }
+@keyframes flux-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(26px, -18px) scale(1.04); }
+  100% { transform: translate(-14px, 22px) scale(0.98); }
+}
+.flux-aurora__grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.075;
+  background-image:
+    linear-gradient(rgba(124,58,237,0.9) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,237,0.9) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at 50% 35%, black 42%, transparent 74%);
+}
+.flux-aurora__glow {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 55%;
+  background: radial-gradient(ellipse 900px 420px at 50% 0%, rgba(124,58,237,0.10), transparent 62%);
+  opacity: 1;
+}
+
+/* Flux custom cursor — desktop only */
+.flux-cursor {
+  position: fixed;
+  top: 0; left: 0;
+  width: 28px; height: 28px;
+  margin-left: -14px; margin-top: -14px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: normal;
+  border: 1.5px solid rgba(124,58,237,0.35);
+  background: rgba(124,58,237,0.08);
+  backdrop-filter: blur(2px);
+  transition: width 0.18s, height 0.18s, margin 0.18s, background 0.18s, border-color 0.18s, opacity 0.18s;
+  opacity: 0;
+}
+.flux-cursor.is-visible { opacity: 1; }
+.flux-cursor.is-hover {
+  width: 44px; height: 44px;
+  margin-left: -22px; margin-top: -22px;
+  background: rgba(124,58,237,0.14);
+  border-color: rgba(124,58,237,0.55);
+}
+.flux-cursor__dot {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 4px; height: 4px;
+  margin-left: -2px; margin-top: -2px;
+  border-radius: 50%;
+  background: #7c3aed;
+  opacity: 0.95;
+}
+@media (max-width: 768px) { .flux-cursor { display: none !important; } }
+@media (prefers-reduced-motion: reduce) { .flux-cursor { display: none !important; } }
+
+/* hide native cursor on flux desktop when custom cursor active */
+[data-theme="flux"] { cursor: auto; }
+@media (min-width: 769px) {
+  [data-theme="flux"] a, [data-theme="flux"] button { cursor: none !important; }
+}
+
+/* Flux scroll progress */
+.flux-progress {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  z-index: 60;
+  transform-origin: left;
+  background: linear-gradient(90deg, #7c3aed, #4f46e5, #06b6d4);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+[data-theme="flux"] .flux-progress { opacity: 1; }
+
+/* Flux gallery — native scroll snap, drag to scroll */
+.flux-carousel {
+  cursor: grab;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-inline: 16px;
+}
+.flux-carousel:active { cursor: grabbing; }
+.flux-carousel::-webkit-scrollbar { display: none; }
+.flux-carousel { scrollbar-width: none; -ms-overflow-style: none; }
+.flux-carousel__card {
+  flex: 0 0 78%;
+  max-width: 360px;
+  scroll-snap-align: start;
+}
+@media (min-width: 640px) { .flux-carousel__card { flex-basis: 44%; max-width: 340px; } }
+@media (min-width: 860px) { .flux-carousel__card { flex-basis: 32%; max-width: 320px; } }
+@media (min-width: 1080px) { .flux-carousel__card { flex-basis: 29.5%; } }
+
+/* Flux card premium hover — violet glow */
+[data-theme="flux"] .flux-carousel__card:hover { border-color: rgba(124,58,237,0.18); }
+[data-theme="flux"] .group\/card:hover, [data-theme="flux"] .flux-carousel__card:hover { box-shadow: 0 16px 32px rgba(91,33,182,0.12), 0 4px 16px rgba(91,33,182,0.08); }

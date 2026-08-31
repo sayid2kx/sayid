@@ -68,7 +68,7 @@ export default function RootLayout({
         <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem("portfolio-theme");var v=["garden","cupertino","paper","studio"];var t=v.indexOf(s)!==-1?s:"garden";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","garden");}})();`,
+            __html: `(function(){try{var s=localStorage.getItem("portfolio-theme");var v=["garden","cupertino","paper","studio","flux"];var t=v.indexOf(s)!==-1?s:"garden";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","garden");}})();`,
           }}
         />
       </head>
