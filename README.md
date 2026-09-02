@@ -8,7 +8,8 @@ Personal portfolio for **Sarowar Jahan Sayid** — CS graduate (Netrokona Univer
 
 ## Features
 
-- **7 sections:** Hero, About, Gallery (Life In Frames), Journey, Education, Store, Contact + footer
+- **8 sections:** Hero, **Learning Simulation**, About, Gallery (Life In Frames), Journey, Education, Store, Contact + footer
+- **Learning Simulation** (`src/components/LearningSimulation.tsx:1`) — centered canvas between Hero and About, no surrounding text. Animated head/shoulders silhouette with 4 icon sources (book/code/tools/idea) and comet particles along quadratic bezier threads. Theme-aware palette via `palette` (Garden `#52b788`, Flux `#7c3aed`, etc.), DPR-aware, `ResizeObserver` + `IntersectionObserver` pause, `prefers-reduced-motion` support. Mobile responsive: `aspect-[1.15/1] sm:aspect-[1.52/1]`, inset adjustment for `<420px`/` <360px`, `minHeight 220`.
 - **5 themes** — Garden (default), **Flux** (interactive), Cupertino (Apple), Paper (warm), Studio (Swiss) — persisted via `localStorage` + `data-theme`, FOUC-safe script in `src/app/layout.tsx:69`
 - **Flux** — light concourse theme with aurora mesh, grid, scroll progress, custom cursor (desktop), magnetic hover, hero tilt (3D), and gallery enhancements
 - **Gallery:** 7 images (`public/assets/sayid1-7.jpg`). Grid (4 themes) / **draggable snap carousel** (Flux) with edge fades, arrows, and drag-to-scroll. Themed captions + click-to-open `Dialog` lightbox
@@ -25,12 +26,14 @@ Next.js 16.3.3 (App Router, `output: "export"`), React 19.2, TypeScript 5, Tailw
 
 ```
 src/app/
-  layout.tsx    # metadata, viewport, fonts, theme hydration
-  page.tsx      # all sections, themes, gallery, Flux interactions
-  globals.css   # tokens + 5 theme blocks + Flux aurora/cursor/carousel
-src/components/ui/  # button, card, badge, separator, sheet, dialog, avatar
-public/assets/      # Sayid.jpg, sayid1-7.jpg, favicon.svg
-next.config.ts      # output: export, images.unoptimized
+  layout.tsx              # metadata, viewport, fonts, theme hydration
+  page.tsx                # all sections (incl. simulation), themes, gallery, Flux interactions
+  globals.css             # tokens + 5 theme blocks + Flux aurora/cursor/carousel
+src/components/
+  LearningSimulation.tsx  # canvas simulation (centered, theme-aware, responsive)
+  ui/                     # button, card, badge, separator, sheet, dialog, avatar
+public/assets/            # Sayid.jpg, sayid1-7.jpg, favicon.svg
+next.config.ts            # output: export, images.unoptimized
 ```
 
 ## Theming

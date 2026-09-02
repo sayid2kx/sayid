@@ -23,7 +23,6 @@ import {
   ArrowUp,
   Menu,
   X,
-  ArrowRight,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -33,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { LearningSimulation } from "@/components/LearningSimulation";
 
 const themes = [
   { id: "garden", label: "Garden", dot: "bg-[#52b788]" },
@@ -633,6 +633,17 @@ export default function Home() {
                   </motion.div>
                 </motion.div>
               </motion.div>
+            </section>
+
+            {/* LEARNING SIMULATION — centered, no text */}
+            <section
+              id="simulation"
+              aria-label="Learning simulation"
+              className="flex justify-center px-4 pb-6 sm:px-6 sm:pb-8 md:px-10"
+            >
+              <div className="w-full max-w-[880px]">
+                <LearningSimulation theme={theme} />
+              </div>
             </section>
 
             {/* ABOUT */}
