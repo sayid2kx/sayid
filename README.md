@@ -8,7 +8,8 @@ Personal portfolio for **Sarowar Jahan Sayid** — CS graduate (Netrokona Univer
 
 ## Features
 
-- **8 sections:** Hero, **Learning Simulation**, About, Gallery (Life In Frames), Journey, Education, Store, Contact + footer
+- **9 sections:** Hero, **Learning Simulation**, About, Gallery (Life In Frames), Journey, **GitHub (On GitHub)**, Education, Store, Contact + footer
+- **GitHub** (`src/components/GitHubProfile.tsx:1`) — live profile card for `sayid2kx` via client-side `api.github.com/users/sayid2kx` (static-export safe). Avatar, bio, location/company, Repos/Followers/Following stats, Live/Cached badge, skeleton + cached fallback with retry, plus contribution graph (`ghchart.rshah.org/sayid2kx`, lazy `<img>`). Section `id="github"` between Journey and Education, nav link included.
 - **Learning Simulation** (`src/components/LearningSimulation.tsx:1`) — centered canvas between Hero and About, no surrounding text. Animated head/shoulders silhouette with 4 icon sources (book/code/tools/idea) and comet particles along quadratic bezier threads. Theme-aware palette via `palette` (Garden `#52b788`, Flux `#7c3aed`, etc.), DPR-aware, `ResizeObserver` + `IntersectionObserver` pause, `prefers-reduced-motion` support. Mobile responsive: `aspect-[1.15/1] sm:aspect-[1.52/1]`, inset adjustment for `<420px`/` <360px`, `minHeight 220`.
 - **5 themes** — Garden (default), **Flux** (interactive), Cupertino (Apple), Paper (warm), Studio (Swiss) — persisted via `localStorage` + `data-theme`, FOUC-safe script in `src/app/layout.tsx:69`
 - **Flux** — light concourse theme with aurora mesh, grid, scroll progress, custom cursor (desktop), magnetic hover, hero tilt (3D), and gallery enhancements
@@ -16,7 +17,7 @@ Personal portfolio for **Sarowar Jahan Sayid** — CS graduate (Netrokona Univer
 - **Motion:** Framer Motion hero, staggered reveals, timeline & card entrances, `AnimatePresence` scroll-to-top
 - **Nav:** floating pill after `scrollY > 20`, desktop links + mobile `Sheet`, smooth `scrollIntoView`
 
-Hero has no CTA buttons — social links only (Facebook, X, Email).
+Hero has no CTA buttons — social links only (Facebook, X, GitHub, Email).
 
 ## Tech Stack
 
@@ -31,6 +32,7 @@ src/app/
   globals.css             # tokens + 5 theme blocks + Flux aurora/cursor/carousel
 src/components/
   LearningSimulation.tsx  # canvas simulation (centered, theme-aware, responsive)
+  GitHubProfile.tsx       # live GitHub profile + contribution graph (client-side)
   ui/                     # button, card, badge, separator, sheet, dialog, avatar
 public/assets/            # Sayid.jpg, sayid1-7.jpg, favicon.svg
 next.config.ts            # output: export, images.unoptimized
