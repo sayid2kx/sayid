@@ -402,7 +402,7 @@ export default function Home() {
           >
             <div className="h-9 w-9 overflow-hidden rounded-full border shadow-sm md:h-10 md:w-10">
               <img
-                src="/assets/Sayid.jpg"
+                src="/assets/sayid-new.webp"
                 alt="Sayid"
                 className="h-full w-full object-cover"
               />
@@ -624,7 +624,7 @@ export default function Home() {
                   <div className="relative h-[240px] w-[240px] overflow-hidden rounded-full border bg-card p-1.5 shadow-2xl max-w-[80vw] sm:h-[280px] sm:w-[280px] md:h-[340px] md:w-[340px]">
                     <div className="h-full w-full overflow-hidden rounded-full border-4 border-card">
                       <Image
-                        src="/assets/Sayid.jpg"
+                        src="/assets/sayid-new.webp"
                         alt="Sarowar Jahan Sayid"
                         width={800}
                         height={800}
@@ -1295,7 +1295,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 overflow-hidden rounded-full border border-white/15">
                   <img
-                    src="/assets/Sayid.jpg"
+                    src="/assets/sayid-new.webp"
                     alt="Sayid"
                     className="h-full w-full object-cover"
                   />
