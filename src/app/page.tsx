@@ -160,9 +160,12 @@ export default function Home() {
   const [cursorHover, setCursorHover] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(false);
 
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeFrame, setActiveFrame] = useState(0);
+
+  // 3D ring carousel refs (shared by all themes)
+  const stageRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const cellRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // motion values for flux cursor + aurora
   const mX = useMotionValue(0);
@@ -241,60 +244,153 @@ export default function Home() {
     };
   }, [isFlux, mX, mY, cursorVisible]);
 
-  // flux gallery scroll affordance (arrows + edge fade)
+  // 3D circular carousel — all 7 photos arranged in a ring that slowly
+  // auto-spins in every theme, like a rotating display. Drag or use the
+  // arrows to spin it; the front card drives the readout counter.
+  const RING_SPEED = 10; // degrees per second — raise to spin faster
+  const ring = useRef({
+    angle: 0,
+    radius: 220,
+    dragging: false,
+    captured: false,
+    hovering: false,
+    moved: false,
+    lastX: 0,
+    downX: 0,
+    resumeAt: 0,
+    anim: null as null | { from: number; to: number; start: number },
+    raf: 0,
+    last: 0,
+  });
+
+  const layoutRing = () => {
+    const cell = cellRefs.current[0];
+    if (!cell) return;
+    // radius factor controls the gaps: 1.2 = snug, 1.3 = balanced, 1.55 = airy.
+    // phones get a tighter factor so the wider ring still fits the viewport.
+    const factor = window.innerWidth >= 640 ? 1.3 : 1.2;
+    const R = Math.max(150, cell.offsetWidth * factor);
+    ring.current.radius = R;
+    const step = 360 / gallery.length;
+    cellRefs.current.forEach((c, idx) => {
+      if (!c) return;
+      c.style.transform = `rotateY(${idx * step}deg) translateZ(${R}px)`;
+    });
+  };
+
+  const paintRing = (angle: number) => {
+    const ringEl = ringRef.current;
+    if (!ringEl) return;
+    ringEl.style.transform = `rotateY(${angle}deg)`;
+    const step = 360 / gallery.length;
+    let front = 0;
+    let best = Infinity;
+    cellRefs.current.forEach((c, idx) => {
+      const rel = (((idx * step + angle) % 360) + 360) % 360; // 0 = front
+      const depth = (Math.cos((rel * Math.PI) / 180) + 1) / 2; // 1 front → 0 back
+      const d = Math.min(rel, 360 - rel);
+      if (d < best) {
+        best = d;
+        front = idx;
+      }
+      if (!c) return;
+      c.style.opacity = String(0.3 + 0.7 * Math.pow(depth, 1.3));
+      c.style.filter = `brightness(${(0.55 + 0.45 * depth).toFixed(3)})`;
+      c.style.pointerEvents = depth > 0.3 ? "auto" : "none";
+    });
+    setActiveFrame((prev) => (prev === front ? prev : front));
+  };
+
   useEffect(() => {
-    if (!isFlux) return;
-    const el = carouselRef.current;
-    if (!el) return;
-    const update = () => {
-      setCanScrollLeft(el.scrollLeft > 8);
-      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+    layoutRing();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      paintRing(ring.current.angle);
+      return;
+    }
+    const st = ring.current;
+    const frame = (t: number) => {
+      const dt = Math.min((t - st.last) / 1000, 0.1);
+      st.last = t;
+      if (st.anim) {
+        // arrow-step tween (easeInOutCubic, 500ms)
+        const k = Math.min((t - st.anim.start) / 500, 1);
+        const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        st.angle = st.anim.from + (st.anim.to - st.anim.from) * e;
+        if (k >= 1) {
+          st.anim = null;
+          st.resumeAt = t + 2500;
+        }
+      } else {
+        const paused =
+          st.dragging || st.hovering || !!lightbox || document.hidden || t < st.resumeAt;
+        if (!paused && dt > 0) st.angle = (st.angle - RING_SPEED * dt) % 360;
+      }
+      paintRing(st.angle);
+      st.raf = requestAnimationFrame(frame);
     };
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    // re-check after images load
-    const imgs = el.querySelectorAll("img");
-    imgs.forEach((im) => im.addEventListener("load", update));
-    const t = setTimeout(update, 600);
+    const onResize = () => layoutRing();
+    window.addEventListener("resize", onResize);
+    st.last = performance.now();
+    st.raf = requestAnimationFrame(frame);
+    const t = setTimeout(layoutRing, 600);
     return () => {
-      el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      imgs.forEach((im) => im.removeEventListener("load", update));
+      cancelAnimationFrame(st.raf);
+      window.removeEventListener("resize", onResize);
       clearTimeout(t);
     };
-  }, [isFlux]);
+  }, [theme, lightbox]);
 
-  const fluxScroll = (dir: number) => {
-    const el = carouselRef.current;
-    if (!el) return;
-    const w = el.clientWidth * 0.85;
-    el.scrollBy({ left: dir * w, behavior: "smooth" });
+  const stepRing = (dir: number) => {
+    const st = ring.current;
+    st.anim = { from: st.angle, to: st.angle + dir * (360 / gallery.length), start: performance.now() };
   };
 
-  // drag-to-scroll for desktop mouse
-  const dragState = useRef({ down: false, startX: 0, left: 0 });
-  const onFluxDown = (e: React.MouseEvent) => {
-    const el = carouselRef.current;
-    if (!el) return;
-    dragState.current = { down: true, startX: e.pageX - el.offsetLeft, left: el.scrollLeft };
-    el.style.cursor = "grabbing";
-    el.style.userSelect = "none";
+  const onRingDown = (e: React.PointerEvent) => {
+    const st = ring.current;
+    st.anim = null;
+    st.dragging = true;
+    st.captured = false;
+    st.moved = false;
+    st.lastX = e.clientX;
+    st.downX = e.clientX;
+    st.resumeAt = Infinity;
+    // NOTE: no setPointerCapture here — capturing on press would steal the
+    // click from the photo button and break the lightbox. Capture engages
+    // only once a real drag is detected (see onRingMove).
   };
-  const onFluxMove = (e: React.MouseEvent) => {
-    const el = carouselRef.current;
-    if (!el || !dragState.current.down) return;
-    e.preventDefault();
-    const x = e.pageX - el.offsetLeft;
-    const walk = (x - dragState.current.startX) * 1.1;
-    el.scrollLeft = dragState.current.left - walk;
+  const onRingMove = (e: React.PointerEvent) => {
+    const st = ring.current;
+    if (!st.dragging) return;
+    const dx = e.clientX - st.lastX;
+    st.lastX = e.clientX;
+    st.angle = (st.angle + dx * 0.25) % 360;
+    if (Math.abs(e.clientX - st.downX) > 8) {
+      st.moved = true;
+      if (!st.captured) {
+        st.captured = true;
+        try {
+          stageRef.current?.setPointerCapture?.(e.pointerId);
+        } catch {}
+      }
+    }
+    paintRing(st.angle);
   };
-  const onFluxUp = () => {
-    const el = carouselRef.current;
-    if (!el) return;
-    dragState.current.down = false;
-    el.style.cursor = "grab";
-    el.style.userSelect = "";
+  const onRingEnd = () => {
+    const st = ring.current;
+    if (!st.dragging) return;
+    st.dragging = false;
+    st.captured = false;
+    st.resumeAt = performance.now() + 2500;
+  };
+  const onRingCardClick = (src: string) => (e: React.MouseEvent) => {
+    if (ring.current.moved) {
+      // it was a spin-drag, not a tap — swallow the click
+      e.preventDefault();
+      e.stopPropagation();
+      ring.current.moved = false;
+      return;
+    }
+    setLightbox(src);
   };
 
   const onHeroMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -738,150 +834,125 @@ export default function Home() {
 
             {/* GALLERY */}
             <section id="gallery" className="scroll-mt-24 px-4 pb-6 sm:px-6 sm:pb-8 md:px-10">
-              <Card className="rounded-[20px] border shadow-sm overflow-hidden sm:rounded-[24px]">
+              <Card className="rounded-[20px] border shadow-sm sm:rounded-[24px]">
                 <CardContent className="p-4 sm:p-6 md:p-8">
                   <div className="flex items-baseline justify-between gap-4 flex-wrap">
                     <h2 className="font-heading text-[clamp(1.6rem,3vw,2.2rem)] tracking-tight">
                       Life In Frames
                     </h2>
-                    {isFlux && (
-                      <span className="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-widest uppercase opacity-60">
-                        <span className="hidden sm:inline">Drag</span> ↔ <span className="sm:hidden">Swipe</span> to explore
-                      </span>
-                    )}
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-widest uppercase opacity-60">
+                      <span className="hidden sm:inline">Drag to spin</span> <span className="sm:hidden">Swipe to spin</span>
+                    </span>
                   </div>
+                  <p className="mt-3 max-w-[34ch] text-[clamp(1rem,2vw,1.25rem)] leading-snug opacity-80">
+                    Seven frames — presence, focus, and life outside work.
+                  </p>
                   <Separator className="my-6" />
-                  {isFlux ? (
-                    <div className="relative -mx-4 sm:-mx-2">
-                      {/* edge fades */}
-                      <div
-                        className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-card to-transparent z-10 hidden sm:block transition-opacity"
-                        style={{ opacity: canScrollLeft ? 1 : 0 }}
-                      />
-                      <div
-                        className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-card to-transparent z-10 hidden sm:block transition-opacity"
-                        style={{ opacity: canScrollRight ? 1 : 0 }}
-                      />
-                      {/* arrow controls — desktop */}
-                      <div className="hidden sm:flex absolute -top-10 right-2 gap-1.5 z-10">
-                        <button
-                          onClick={() => fluxScroll(-1)}
-                          onMouseEnter={() => setCursorHover(true)}
-                          onMouseLeave={() => setCursorHover(false)}
-                          aria-label="Scroll left"
-                          className="grid h-8 w-8 place-items-center rounded-full border bg-card shadow-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                          disabled={!canScrollLeft}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => fluxScroll(1)}
-                          onMouseEnter={() => setCursorHover(true)}
-                          onMouseLeave={() => setCursorHover(false)}
-                          aria-label="Scroll right"
-                          className="grid h-8 w-8 place-items-center rounded-full border bg-card shadow-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                          disabled={!canScrollRight}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <div
-                        ref={carouselRef}
-                        onMouseDown={onFluxDown}
-                        onMouseMove={onFluxMove}
-                        onMouseLeave={onFluxUp}
-                        onMouseUp={onFluxUp}
-                        className="flux-carousel flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 sm:px-2 pb-3 pt-1 -mb-1"
-                        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  <div className="relative">
+                    {/* arrow controls — spin one frame per click */}
+                    <div className="hidden sm:flex absolute -top-10 right-2 gap-1.5 z-10">
+                      <button
+                        onClick={() => stepRing(1)}
+                        onMouseEnter={() => isFlux && setCursorHover(true)}
+                        onMouseLeave={() => isFlux && setCursorHover(false)}
+                        aria-label="Spin gallery left"
+                        className="grid h-8 w-8 place-items-center rounded-full border bg-card shadow-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
                       >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => stepRing(-1)}
+                        onMouseEnter={() => isFlux && setCursorHover(true)}
+                        onMouseLeave={() => isFlux && setCursorHover(false)}
+                        aria-label="Spin gallery right"
+                        className="grid h-8 w-8 place-items-center rounded-full border bg-card shadow-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* 3D ring — every photo visible in a circle, slowly auto-spinning */}
+                    <div
+                      ref={stageRef}
+                      role="region"
+                      aria-label={`Photo gallery — frame ${activeFrame + 1} of ${gallery.length}`}
+                      onPointerDown={onRingDown}
+                      onPointerMove={onRingMove}
+                      onPointerUp={onRingEnd}
+                      onPointerCancel={onRingEnd}
+                      onMouseEnter={() => {
+                        ring.current.hovering = true;
+                      }}
+                      onMouseLeave={() => {
+                        ring.current.hovering = false;
+                        ring.current.resumeAt = performance.now() + 1200;
+                      }}
+                      className="ring-stage flex h-[340px] cursor-grab items-center justify-center overflow-visible active:cursor-grabbing sm:h-[440px]"
+                      style={{ touchAction: "pan-y" }}
+                    >
+                      <div ref={ringRef} className="ring relative h-0 w-0">
                         {gallery.map((item, i) => (
-                          <motion.button
+                          <div
                             key={item.src}
-                            initial={{ opacity: 0, y: 14 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-40px" }}
-                            transition={{ delay: i * 0.045, ease: [0.16, 1, 0.3, 1] }}
-                            whileHover={{ y: -6, scale: 1.015 }}
-                            onHoverStart={() => setCursorHover(true)}
-                            onHoverEnd={() => setCursorHover(false)}
-                            onClick={() => setLightbox(item.src)}
-                            className="flux-carousel__card group relative aspect-[4/4.85] overflow-hidden rounded-2xl border bg-card text-left shadow-sm hover:shadow-xl hover:shadow-violet-600/10 transition-all shrink-0 snap-start select-none"
-                            style={{ touchAction: "pan-y" }}
+                            ref={(el) => {
+                              cellRefs.current[i] = el;
+                            }}
+                            className="ring-cell absolute top-0 left-0 aspect-[3/3.8] w-40 select-none [translate:-50%_-50%] sm:w-56"
                           >
-                            <img
-                              src={item.src}
-                              alt={(galleryCaptions[theme] ?? galleryCaptions.garden)[i] ?? item.label}
-                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-                              draggable={false}
-                            />
-                            {/* top number + subtle grain */}
-                            <span className="absolute left-3 top-3 grid h-7 w-7 place-items-center rounded-full bg-foreground text-background font-mono text-[10px] font-bold shadow-md">
-                              0{i + 1}
-                            </span>
-                            {/* hover sheen */}
-                            <span className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-tr from-violet-600/10 via-transparent to-transparent" />
-                            <span
-                              className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-3 py-2.5 backdrop-blur-md"
-                              style={{
-                                background: "var(--gallery-caption-bg)",
-                                color: "var(--gallery-caption-fg)",
-                                borderTop: "1px solid var(--gallery-caption-border)",
-                              }}
+                            <motion.button
+                              initial={{ opacity: 0, y: 14 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true, margin: "-40px" }}
+                              transition={{ delay: i * 0.045, ease: [0.16, 1, 0.3, 1] }}
+                              whileHover={{ y: -6 }}
+                              onHoverStart={() => isFlux && setCursorHover(true)}
+                              onHoverEnd={() => isFlux && setCursorHover(false)}
+                              onClick={onRingCardClick(item.src)}
+                              aria-label={`Open frame ${i + 1}: ${(galleryCaptions[theme] ?? galleryCaptions.garden)[i] ?? item.label}`}
+                              className="group relative block h-full w-full overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-shadow hover:shadow-xl"
                             >
-                              <span className="font-mono text-xs font-semibold tracking-wider uppercase truncate">
-                                {(galleryCaptions[theme] ?? galleryCaptions.garden)[i] ?? item.label}
+                              <img
+                                src={item.src}
+                                alt={(galleryCaptions[theme] ?? galleryCaptions.garden)[i] ?? item.label}
+                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                                draggable={false}
+                              />
+                              {/* top number */}
+                              <span className="absolute left-3 top-3 grid h-7 w-7 place-items-center rounded-full bg-foreground text-background font-mono text-[10px] font-bold shadow-md">
+                                0{i + 1}
                               </span>
-                              <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-black text-xs opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0 translate-x-1">
-                                ↗
+                              {/* hover sheen — theme accent tinted */}
+                              <span className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-tr from-[var(--accent)]/15 via-transparent to-transparent" />
+                              <span
+                                className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-3 py-2.5 backdrop-blur-md"
+                                style={{
+                                  background: "var(--gallery-caption-bg)",
+                                  color: "var(--gallery-caption-fg)",
+                                  borderTop: "1px solid var(--gallery-caption-border)",
+                                }}
+                              >
+                                <span className="font-mono text-xs font-semibold tracking-wider uppercase truncate">
+                                  {(galleryCaptions[theme] ?? galleryCaptions.garden)[i] ?? item.label}
+                                </span>
+                                <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-black text-xs opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0 translate-x-1">
+                                  ↗
+                                </span>
                               </span>
-                            </span>
-                          </motion.button>
+                            </motion.button>
+                          </div>
                         ))}
                       </div>
-                      <p className="mt-2 text-center font-mono text-[11px] tracking-widest uppercase opacity-40 sm:hidden">
-                        Swipe to explore → {gallery.length} frames
-                      </p>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {gallery.map((item, i) => (
-                        <motion.button
-                          key={item.src}
-                          initial={{ opacity: 0, y: 12 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true, margin: "-40px" }}
-                          transition={{ delay: i * 0.05 }}
-                          onClick={() => setLightbox(item.src)}
-                          className="group relative aspect-square overflow-hidden rounded-2xl border bg-card text-left shadow-sm hover:shadow-lg transition-all hover:-translate-y-1"
-                        >
-                          <img
-                            src={item.src}
-                            alt={(galleryCaptions[theme] ?? galleryCaptions.garden)[i] ?? item.label}
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          />
-                          <span className="absolute left-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-foreground text-background font-mono text-[10px] font-bold">
-                            0{i + 1}
-                          </span>
-                          <span
-                            className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-3 py-2.5 backdrop-blur"
-                            style={{
-                              background: "var(--gallery-caption-bg)",
-                              color: "var(--gallery-caption-fg)",
-                              borderTop: "1px solid var(--gallery-caption-border)",
-                            }}
-                          >
-                            <span className="font-mono text-xs font-semibold tracking-wider uppercase truncate">
-                              {(galleryCaptions[theme] ?? galleryCaptions.garden)[i] ?? item.label}
-                            </span>
-                            <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-black text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                              ↗
-                            </span>
-                          </span>
-                        </motion.button>
-                      ))}
-                    </div>
-                  )}
+                    {/* readout — Shardul-style counter */}
+                    <p className="gallery-readout" aria-live="polite">
+                      <b>{String(activeFrame + 1).padStart(2, "0")} / {String(gallery.length).padStart(2, "0")}</b>
+                      <i aria-hidden />
+                      <span>{(galleryCaptions[theme] ?? galleryCaptions.garden)[activeFrame] ?? gallery[activeFrame]?.label}</span>
+                    </p>
+                    <p className="mt-2 text-center font-mono text-[11px] tracking-widest uppercase opacity-40 sm:hidden">
+                      Swipe to spin → {gallery.length} frames
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </section>

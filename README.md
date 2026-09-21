@@ -12,8 +12,8 @@ Personal portfolio for **Sarowar Jahan Sayid** — CS graduate (Netrokona Univer
 - **GitHub** (`src/components/GitHubProfile.tsx:1`) — live profile card for `sayid2kx` via client-side `api.github.com/users/sayid2kx` (static-export safe). Avatar, bio, location/company, Repos/Followers/Following stats, Live/Cached badge, skeleton + cached fallback with retry, plus contribution graph (`ghchart.rshah.org/sayid2kx`, lazy `<img>`). Section `id="github"` between Journey and Education, nav link included.
 - **Learning Simulation** (`src/components/LearningSimulation.tsx:1`) — centered canvas between Hero and About, no surrounding text. Animated head/shoulders silhouette with 4 icon sources (book/code/tools/idea) and comet particles along quadratic bezier threads. Theme-aware palette via `palette` (Garden `#52b788`, Flux `#7c3aed`, etc.), DPR-aware, `ResizeObserver` + `IntersectionObserver` pause, `prefers-reduced-motion` support. Mobile responsive: `aspect-[1.15/1] sm:aspect-[1.52/1]`, inset adjustment for `<420px`/` <360px`, `minHeight 220`.
 - **5 themes** — Garden (default), **Flux** (interactive), Cupertino (Apple), Paper (warm), Studio (Swiss) — persisted via `localStorage` + `data-theme`, FOUC-safe script in `src/app/layout.tsx:69`
-- **Flux** — light concourse theme with aurora mesh, grid, scroll progress, custom cursor (desktop), magnetic hover, hero tilt (3D), and gallery enhancements
-- **Gallery:** 7 images (`public/assets/sayid1-7.jpg`). Grid (4 themes) / **draggable snap carousel** (Flux) with edge fades, arrows, and drag-to-scroll. Themed captions + click-to-open `Dialog` lightbox
+- **Flux** — light concourse theme with aurora mesh, grid, scroll progress, custom cursor (desktop), magnetic hover, hero tilt (3D)
+- **Gallery:** 7 images (`public/assets/sayid1-7.jpg`) in a **3D circular carousel shared by all 5 themes** (shardul.studio-inspired). Photos sit on an auto-spinning ring (`rotateY` + `translateZ`, `preserve-3d`), front frame full-bright with back frames dimmed by depth. Drag/swipe to spin (pointer capture + tap-vs-drag detection), arrows step exactly one frame with an eased tween, front-card `01/07 — caption` readout, tap to open the `Dialog` lightbox. Ring radius (= frame gaps) tunable via `factor` in `layoutRing` (`src/app/page.tsx`), desktop/mobile split. Themed captions via `galleryCaptions`, `prefers-reduced-motion` pauses auto-spin
 - **Motion:** Framer Motion hero, staggered reveals, timeline & card entrances, `AnimatePresence` scroll-to-top
 - **Nav:** floating pill after `scrollY > 20`, desktop links + mobile `Sheet`, smooth `scrollIntoView`
 
@@ -29,7 +29,7 @@ Next.js 16.3.3 (App Router, `output: "export"`), React 19.2, TypeScript 5, Tailw
 src/app/
   layout.tsx              # metadata, viewport, fonts, theme hydration
   page.tsx                # all sections (incl. simulation), themes, gallery, Flux interactions
-  globals.css             # tokens + 5 theme blocks + Flux aurora/cursor/carousel
+  globals.css             # tokens + 5 theme blocks + Flux aurora/cursor + gallery ring/readout
 src/components/
   LearningSimulation.tsx  # canvas simulation (centered, theme-aware, responsive)
   GitHubProfile.tsx       # live GitHub profile + contribution graph (client-side)

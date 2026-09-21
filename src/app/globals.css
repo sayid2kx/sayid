@@ -488,24 +488,54 @@ body::before {
 }
 [data-theme="flux"] .flux-progress { opacity: 1; }
 
-/* Flux gallery — native scroll snap, drag to scroll */
-.flux-carousel {
-  cursor: grab;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-inline: 16px;
+/* Gallery — 3D circular carousel (all themes): perspective stage + spinning ring */
+.ring-stage {
+  perspective: 1200px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  /* soften the ring edges so side frames melt into the page */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
 }
-.flux-carousel:active { cursor: grabbing; }
-.flux-carousel::-webkit-scrollbar { display: none; }
-.flux-carousel { scrollbar-width: none; -ms-overflow-style: none; }
-.flux-carousel__card {
-  flex: 0 0 78%;
-  max-width: 360px;
-  scroll-snap-align: start;
+.ring-stage img {
+  -webkit-user-drag: none;
 }
-@media (min-width: 640px) { .flux-carousel__card { flex-basis: 44%; max-width: 340px; } }
-@media (min-width: 860px) { .flux-carousel__card { flex-basis: 32%; max-width: 320px; } }
-@media (min-width: 1080px) { .flux-carousel__card { flex-basis: 29.5%; } }
+.ring {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.ring-cell {
+  /* centered via `translate` property so JS-owned `transform` stays intact */
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+}
+.gallery-readout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: clamp(14px, 2.4vh, 26px) 0 0;
+  text-transform: uppercase;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+}
+.gallery-readout b { font-weight: 600; }
+.gallery-readout i {
+  display: block;
+  width: clamp(18px, 3vw, 40px);
+  height: 1px;
+  margin: 0 12px;
+  background: currentColor;
+  opacity: 0.6;
+}
+.gallery-readout span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 46ch;
+}
 
-/* Flux card premium hover — violet glow */
-[data-theme="flux"] .flux-carousel__card:hover { border-color: rgba(124,58,237,0.18); }
-[data-theme="flux"] .group\/card:hover, [data-theme="flux"] .flux-carousel__card:hover { box-shadow: 0 16px 32px rgba(91,33,182,0.12), 0 4px 16px rgba(91,33,182,0.08); }
+/* Flux card premium hover — violet glow (applies to shadcn Cards) */
+[data-theme="flux"] .group\/card:hover { box-shadow: 0 16px 32px rgba(91,33,182,0.12), 0 4px 16px rgba(91,33,182,0.08); }
